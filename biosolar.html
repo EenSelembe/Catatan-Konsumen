@@ -3,48 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Catatan Biosolar</title>
+<title>CATATAN BIOSOLAR</title>
 
 <style>
-body{
-  font-family: Arial;
-  background:#f5f5f5;
-  padding:10px;
+body {font-family:Arial; background:#111; color:#fff; padding:15px;}
+input,button {
+  padding:12px; margin:5px 0; width:100%;
+  font-size:16px; border-radius:6px; border:none;
 }
-h2{text-align:center;}
-
-.container{
-  background:#fff;
-  padding:15px;
-  border-radius:10px;
-  box-shadow:0 0 5px rgba(0,0,0,0.1);
+button {background:#28a745; color:white;}
+.hapus {background:#dc3545;}
+.hapus-kecil {
+  width:auto; padding:4px 8px; font-size:12px;
 }
-
-input,button{
-  width:100%;
-  padding:10px;
-  margin:5px 0;
-  font-size:16px;
+table {
+  width:100%; margin-top:10px;
+  border-collapse:collapse; font-size:13px;
 }
-
-button{
-  background:#007bff;
-  color:white;
-  border:none;
-  border-radius:5px;
-}
-
-.data{
-  background:#fff;
-  margin-top:10px;
-  padding:10px;
-  border-radius:10px;
-}
-
-.total{
-  background:#e9f7ef;
-  padding:10px;
-  border-radius:10px;
+th,td {border:1px solid #444; padding:6px; text-align:center;}
+#summary {
+  background:#1e1e1e; padding:10px; border-radius:8px;
   margin-bottom:10px;
 }
 </style>
@@ -54,146 +32,181 @@ button{
 
 <h2>CATATAN BIOSOLAR</h2>
 
-<div class="total" id="total"></div>
-
-<div class="container">
-  <input type="text" id="nomor" placeholder="Nomor" readonly>
-  <input type="text" id="nama" placeholder="Nama (opsional)" oninput="this.value=this.value.toUpperCase()">
-  <input type="number" id="liter" placeholder="Liter" inputmode="numeric">
-  <input type="text" id="uang" placeholder="Uang" inputmode="numeric">
-  <button onclick="simpanData()">Simpan Data</button>
+<div id="summary">
+  Total Data: <span id="totalData">0</span> |
+  Total Liter: <span id="totalLiter">0</span> |
+  Total DEX: Rp <span id="totalDex">0</span> |
+  Total Nominal: Rp <span id="totalNominal">0</span>
 </div>
 
-<div id="list"></div>
+<input id="nama" placeholder="Nama (opsional)" oninput="this.value=this.value.toUpperCase()">
+<input id="liter" type="number" inputmode="numeric" placeholder="Liter" oninput="hitung()">
+<input id="harga" readonly placeholder="Harga">
+<input id="dex" readonly placeholder="DEX">
+<input id="total" readonly placeholder="Total">
+
+<input id="uang" inputmode="numeric" placeholder="Uang" oninput="formatUang(this); hitung()">
+<input id="kembali" readonly placeholder="Kembalian">
+
+<button onclick="simpanData()">Tambah / Update Data</button>
+<button class="hapus" onclick="hapusSemua()">Hapus Semua</button>
+
+<table>
+<thead>
+<tr>
+<th>No</th>
+<th>Nama</th>
+<th>Liter</th>
+<th>Harga</th>
+<th>DEX</th>
+<th>Total</th>
+<th>Uang</th>
+<th>Kembali</th>
+<th>Aksi</th>
+</tr>
+</thead>
+<tbody id="tabel"></tbody>
+</table>
 
 <script>
 const STORAGE_KEY = 'data_biosolar';
-let editIndex = null;
+const hargaPerLiter = 11000;
+let editIndex = -1;
 
-function formatUang(angka){
-  return Number(angka).toLocaleString('id-ID');
+function formatRupiah(angka){
+  return angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g,".");
 }
 
 function ambilAngka(val){
   return parseInt(val.replace(/[^0-9]/g,''))||0;
 }
 
-function setNomor(){
-  let data = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
-  document.getElementById('nomor').value = data.length+1;
+function formatUang(input){
+  let angka = ambilAngka(input.value);
+  input.value = formatRupiah(angka);
+}
+
+function hitung(){
+  const liter = parseFloat(document.getElementById('liter').value)||0;
+  const uang = ambilAngka(document.getElementById('uang').value);
+
+  const harga = liter * hargaPerLiter;
+  const dex = Math.floor(liter / 100) * 50000;
+  const total = harga + dex;
+  const kembali = uang - total;
+
+  document.getElementById('harga').value = formatRupiah(harga);
+  document.getElementById('dex').value = formatRupiah(dex);
+  document.getElementById('total').value = formatRupiah(total);
+  document.getElementById('kembali').value = formatRupiah(kembali);
 }
 
 function simpanData(){
-  let data = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
-
-  const nomor = document.getElementById('nomor').value;
   const nama = document.getElementById('nama').value;
   const liter = parseFloat(document.getElementById('liter').value)||0;
   const uang = ambilAngka(document.getElementById('uang').value);
 
-  if(liter<=0){
-    alert("Liter harus diisi");
-    return;
-  }
+  if(liter <= 0) return alert("Liter harus diisi");
+  if(uang <= 0) return alert("Uang harus diisi");
 
-  if(uang<=0){
-    alert("Uang harus diisi");
-    return;
-  }
-
-  const harga = liter * 11000;
-  const dex = Math.floor(liter/100)*50000;
+  const harga = liter * hargaPerLiter;
+  const dex = Math.floor(liter / 100) * 50000;
   const total = harga + dex;
   const kembali = uang - total;
 
-  const item = {nomor,nama,liter,harga,dex,total,uang,kembali};
+  let data = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
 
-  if(editIndex!==null){
+  if(editIndex >= 0){
     if(confirm("Edit data ini?")){
-      data[editIndex] = item;
-      editIndex = null;
-    }else{return;}
-  }else{
-    data.push(item);
+      data[editIndex] = {nama,liter,harga,dex,total,uang,kembali};
+      editIndex = -1;
+    } else return;
+  } else {
+    data.push({nama,liter,harga,dex,total,uang,kembali});
   }
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-
-  document.getElementById('nama').value='';
-  document.getElementById('liter').value='';
-  document.getElementById('uang').value='';
-
-  tampilkanData();
-  setNomor();
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+  resetForm();
+  tampilkan();
 }
 
-function tampilkanData(){
-  let data = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
-  let html='';
+function tampilkan(){
+  const data = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+  const tabel = document.getElementById('tabel');
+  tabel.innerHTML = "";
 
-  let totalLiter=0,totalHarga=0,totalDex=0;
+  let totalLiter = 0;
+  let totalNominal = 0;
+  let totalDex = 0;
 
   data.forEach((d,i)=>{
-    totalLiter+=d.liter;
-    totalHarga+=d.harga;
-    totalDex+=d.dex;
+    totalLiter += d.liter;
+    totalNominal += d.total;
+    totalDex += d.dex;
 
-    html+=`
-    <div class="data" onclick="editData(${i})">
-      <b>No:</b> ${d.nomor}<br>
-      <b>Nama:</b> ${d.nama||'-'}<br>
-      <b>Liter:</b> ${d.liter}<br>
-      <b>Harga:</b> Rp ${formatUang(d.harga)}<br>
-      <b>DEX:</b> Rp ${formatUang(d.dex)}<br>
-      <b>Total:</b> Rp ${formatUang(d.total)}<br>
-      <b>Uang:</b> Rp ${formatUang(d.uang)}<br>
-      <b>Kembali:</b> Rp ${formatUang(d.kembali)}<br><br>
-      <button onclick="event.stopPropagation();hapusData(${i})">🗑️</button>
-    </div>
-    `;
+    tabel.innerHTML += `
+    <tr onclick="editData(${i})">
+      <td>${i+1}</td>
+      <td>${d.nama || '-'}</td>
+      <td>${d.liter}</td>
+      <td>${formatRupiah(d.harga)}</td>
+      <td>${formatRupiah(d.dex)}</td>
+      <td>${formatRupiah(d.total)}</td>
+      <td>${formatRupiah(d.uang)}</td>
+      <td>${formatRupiah(d.kembali)}</td>
+      <td>
+        <button class="hapus-kecil" onclick="event.stopPropagation(); hapusData(${i})">🗑</button>
+      </td>
+    </tr>`;
   });
 
-  document.getElementById('list').innerHTML = html;
-
-  document.getElementById('total').innerHTML=`
-    <b>Total Data:</b> ${data.length}<br>
-    <b>Total Liter:</b> ${totalLiter}<br>
-    <b>Total Harga:</b> Rp ${formatUang(totalHarga)}<br>
-    <b>Total DEX:</b> Rp ${formatUang(totalDex)}<br>
-    <b>Total Semua:</b> Rp ${formatUang(totalHarga+totalDex)}
-  `;
-}
-
-function hapusData(i){
-  if(confirm("Hapus data ini?")){
-    let data = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
-    data.splice(i,1);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    tampilkanData();
-    setNomor();
-  }
+  document.getElementById('totalData').innerText = data.length;
+  document.getElementById('totalLiter').innerText = totalLiter;
+  document.getElementById('totalNominal').innerText = formatRupiah(totalNominal);
+  document.getElementById('totalDex').innerText = formatRupiah(totalDex);
 }
 
 function editData(i){
-  let data = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
-  let d = data[i];
+  if(!confirm("Edit data ini?")) return;
 
-  if(confirm("Edit data ini?")){
-    document.getElementById('nomor').value=d.nomor;
-    document.getElementById('nama').value=d.nama;
-    document.getElementById('liter').value=d.liter;
-    document.getElementById('uang').value=formatUang(d.uang);
-    editIndex=i;
+  const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+  const d = data[i];
+
+  document.getElementById('nama').value = d.nama;
+  document.getElementById('liter').value = d.liter;
+  document.getElementById('uang').value = formatRupiah(d.uang);
+
+  editIndex = i;
+  hitung();
+}
+
+function hapusData(i){
+  if(!confirm("Hapus data ini?")) return;
+
+  let data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+  data.splice(i,1);
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+  tampilkan();
+}
+
+function hapusSemua(){
+  if(confirm("Hapus semua data?")){
+    localStorage.removeItem(STORAGE_KEY);
+    tampilkan();
   }
 }
 
-document.getElementById('uang').addEventListener('input',function(){
-  let angka = ambilAngka(this.value);
-  this.value = formatUang(angka);
-});
+function resetForm(){
+  document.getElementById('nama').value='';
+  document.getElementById('liter').value='';
+  document.getElementById('harga').value='';
+  document.getElementById('dex').value='';
+  document.getElementById('total').value='';
+  document.getElementById('uang').value='';
+  document.getElementById('kembali').value='';
+}
 
-setNomor();
-tampilkanData();
+window.onload = tampilkan;
 </script>
 
 </body>
