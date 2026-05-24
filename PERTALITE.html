@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CATATAN PERTALITE</title>
+
+<style>
+body {
+  font-family: Arial;
+  background:#111;
+  color:#fff;
+  padding:15px;
+  max-width:500px;
+  margin:auto;
+}
+
+input, button {
+  padding:12px;
+  margin:6px 0;
+  width:100%;
+  font-size:16px;
+  border-radius:6px;
+  border:none;
+}
+
+button {background:#28a745; color:white;}
+button.hapus {background:#dc3545;}
+button.batal {background:#6c757d;}
+button.hapus-kecil {
+  padding:5px;
+  font-size:14px;
+  width:auto;
+}
+
+table {
+  width:100%;
+  margin-top:15px;
+  border-collapse:collapse;
+  display:block;
+  overflow-x:auto;
+  white-space:nowrap;
+}
+
+th, td {
+  border:1px solid #444;
+  padding:8px;
+  text-align:center;
+}
+
+#summary {
+  margin:10px 0;
+  padding:10px;
+  background:#1e1e1e;
+  border-radius:8px;
+}
+
+#popup {
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.7);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+
+#popupBox {
+  background:#222;
+  padding:20px;
+  border-radius:10px;
+  text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<h2>CATATAN PERTALITE</h2>
+
+<div id="summary">
+<b>Total Data:</b> <span id="totalData">0</span><br>
+<b>Total Liter:</b> <span id="totalLiter">0</span><br>
+<b>Total Nominal:</b> Rp <span id="totalNominal">0</span>
+</div>
+
+<input type="text" id="nomor" readonly>
+<input type="text" id="nama" placeholder="Nama">
+<input type="number" id="liter" placeholder="Liter" inputmode="numeric" oninput="hitung()">
+<input type="text" id="harga" readonly>
+<input type="text" id="uang" placeholder="Uang Dibayar" inputmode="numeric" oninput="formatUang(this)">
+<input type="text" id="kembali" readonly>
+
+<button onclick="tambahData()" id="btnTambah">Tambah Data</button>
+<button class="hapus" onclick="hapusSemua()">Hapus Semua</button>
+
+<table>
+<thead>
+<tr>
+<th>No</th>
+<th>Nama</th>
+<th>Liter</th>
+<th>Harga</th>
+<th>Bayar</th>
+<th>Kembali</th>
+<th>Aksi</th>
+</tr>
+</thead>
+<tbody id="tabelData"></tbody>
+</table>
+
+<div id="popup">
+<div id="popupBox">
+<p id="popupText"></p>
+<button onclick="konfirmasiYa()">Ya</button>
+<button class="batal" onclick="tutupPopup()">Batal</button>
+</div>
+</div>
+
+<script>
+let editIndex = -1;
+let aksi = '';
+let indexSimpan = 0;
+const hargaPerLiter = 11000;
+
+function formatRupiah(angka){
+  return Number(angka).toLocaleString('id-ID');
+}
+
+function formatUang(input){
+  let angka = input.value.replace(/[^0-9]/g,'');
+  input.value = angka ? Number(angka).toLocaleString('id-ID') : '';
+  hitung();
+}
+
+function hitung(){
+  const liter = parseFloat(document.getElementById('liter').value)||0;
+  const uang = parseFloat(document.getElementById('uang').value.replace(/\./g,''))||0;
+
+  const total = liter * hargaPerLiter;
+  const kembali = uang - total;
+
+  document.getElementById('harga').value = formatRupiah(total);
+  document.getElementById('kembali').value = formatRupiah(kembali);
+}
+
+function setNomor(){
+  const data = JSON.parse(localStorage.getItem('data')||'[]');
+  document.getElementById('nomor').value = data.length + 1;
+}
+
+function tambahData(){
+  if(editIndex !== -1){
+    aksi='edit';
+    bukaPopup('Simpan perubahan?');
+  } else {
+    simpanData();
+  }
+}
+
+function simpanData(){
+  const nomor=document.getElementById('nomor').value;
+  const nama=document.getElementById('nama').value;
+  const liter=parseFloat(document.getElementById('liter').value)||0;
+  const harga=liter * hargaPerLiter;
+
+  const uang=parseFloat(document.getElementById('uang').value.replace(/\./g,''))||0;
+  const kembali=uang - harga;
+
+  let data = JSON.parse(localStorage.getItem('data')||'[]');
+
+  if(editIndex === -1){
+    data.push({nomor,nama,liter,harga,uang,kembali});
+  } else {
+    data[editIndex]={nomor,nama,liter,harga,uang,kembali};
+    editIndex=-1;
+    document.getElementById('btnTambah').innerText='Tambah Data';
+  }
+
+  localStorage.setItem('data',JSON.stringify(data));
+  tampilkanData();
+  resetForm();
+}
+
+function pilihEdit(i){
+  aksi='editPilih';
+  indexSimpan=i;
+  bukaPopup('Edit data ini?');
+}
+
+function hapusData(i){
+  aksi='hapus';
+  indexSimpan=i;
+  bukaPopup('Hapus data ini?');
+}
+
+function hapusSemua(){
+  aksi='hapusSemua';
+  bukaPopup('Hapus semua data?');
+}
+
+function konfirmasiYa(){
+  let data = JSON.parse(localStorage.getItem('data')||'[]');
+
+  if(aksi==='hapus'){
+    data.splice(indexSimpan,1);
+  }
+
+  if(aksi==='hapusSemua'){
+    data=[];
+  }
+
+  if(aksi==='editPilih'){
+    const d=data[indexSimpan];
+
+    document.getElementById('nomor').value=d.nomor;
+    document.getElementById('nama').value=d.nama;
+    document.getElementById('liter').value=d.liter;
+    document.getElementById('harga').value=formatRupiah(d.harga);
+    document.getElementById('uang').value=formatRupiah(d.uang);
+    document.getElementById('kembali').value=formatRupiah(d.kembali);
+
+    editIndex=indexSimpan;
+    document.getElementById('btnTambah').innerText='Simpan Perubahan';
+  }
+
+  if(aksi==='edit'){
+    simpanData();
+  }
+
+  localStorage.setItem('data',JSON.stringify(data));
+  tampilkanData();
+  setNomor();
+  tutupPopup();
+}
+
+function tampilkanData(){
+  const tabel=document.getElementById('tabelData');
+  tabel.innerHTML='';
+
+  const data=JSON.parse(localStorage.getItem('data')||'[]');
+
+  let totalLiter=0;
+  let totalNominal=0;
+
+  data.forEach((d,i)=>{
+    totalLiter+=d.liter;
+    totalNominal+=d.harga;
+
+    tabel.innerHTML+=`
+    <tr onclick="pilihEdit(${i})">
+      <td>${d.nomor}</td>
+      <td>${d.nama}</td>
+      <td>${d.liter}</td>
+      <td>Rp ${formatRupiah(d.harga)}</td>
+      <td>Rp ${formatRupiah(d.uang)}</td>
+      <td>Rp ${formatRupiah(d.kembali)}</td>
+      <td>
+        <button class="hapus hapus-kecil" onclick="event.stopPropagation();hapusData(${i})">🗑️</button>
+      </td>
+    </tr>`;
+  });
+
+  document.getElementById('totalData').innerText=data.length;
+  document.getElementById('totalLiter').innerText=totalLiter;
+  document.getElementById('totalNominal').innerText=formatRupiah(totalNominal);
+}
+
+function resetForm(){
+  document.getElementById('nama').value='';
+  document.getElementById('liter').value='';
+  document.getElementById('harga').value='';
+  document.getElementById('uang').value='';
+  document.getElementById('kembali').value='';
+  setNomor();
+}
+
+function bukaPopup(text){
+  document.getElementById('popupText').innerText=text;
+  document.getElementById('popup').style.display='flex';
+}
+
+function tutupPopup(){
+  document.getElementById('popup').style.display='none';
+}
+
+window.onload=function(){
+  tampilkanData();
+  setNomor();
+}
+</script>
+
+</body>
+</html>
