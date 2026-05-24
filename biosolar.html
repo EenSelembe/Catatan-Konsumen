@@ -107,7 +107,7 @@ function simpanData(){
 
   if(liter <= 0) return alert("Liter harus diisi");
 
-  let data = JSON.parse(localStorage.getItem('data')||'[]');
+  let data = JSON.parse(localStorage.getItem('data_biosolar')||'[]');
 
   if(editIndex >= 0){
     if(confirm("Edit data ini?")){
@@ -124,7 +124,7 @@ function simpanData(){
 }
 
 function tampilkan(){
-  const data = JSON.parse(localStorage.getItem('data')||'[]');
+  const data = JSON.parse(localStorage.getItem('data_biosolar')||'[]');
   const tabel = document.getElementById('tabel');
   tabel.innerHTML = "";
 
