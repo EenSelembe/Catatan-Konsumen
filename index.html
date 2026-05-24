@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Menu Utama</title>
+
+<style>
+body {
+  font-family: Arial;
+  background:#111;
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  flex-direction:column;
+}
+
+h1 {
+  margin-bottom:30px;
+}
+
+button {
+  width:250px;
+  padding:15px;
+  margin:10px;
+  font-size:18px;
+  border:none;
+  border-radius:10px;
+  color:white;
+  cursor:pointer;
+}
+
+.pertalite { background:#28a745; }
+.biosolar { background:#ffc107; color:black; }
+</style>
+</head>
+
+<body>
+
+<h1>PILIH JENIS BBM</h1>
+
+<button class="pertalite" onclick="masuk('pertalite.html')">
+  PERTALITE
+</button>
+
+<button class="biosolar" onclick="masuk('biosolar.html')">
+  BIOSOLAR
+</button>
+
+<script>
+function masuk(link){
+  window.location.href = link;
+}
+</script>
+
+</body>
+</html>
